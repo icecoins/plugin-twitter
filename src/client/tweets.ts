@@ -585,7 +585,62 @@ export async function createCreateTweetRequest(
     if (mediaData && mediaData.length > 0) {
       // Note: Twitter API v2 media upload requires separate endpoint
       // For now, we'll skip media upload as it requires additional implementation
-      console.warn("Media upload not yet implemented for Twitter API v2");
+      // console.warn("Media upload not yet implemented for Twitter API v2");
+      tweetConfig.media = {
+        media_ids:[""]
+      };
+      let media_ids: string[] = [];
+      for(let i = 0; i < mediaData.length; i++){
+        const media = mediaData[i];
+        const v2 = v2client.v2;
+        let type: EUploadMimeType = EUploadMimeType.Jpeg;
+        switch(media.mediaType){
+          case "image":
+          case "jpg":
+            break;
+          case "png":
+            type = EUploadMimeType.Png;
+            break;
+          case "video":
+          case "mp4":
+            type = EUploadMimeType.Mp4;
+            break;
+          case "quicktime":
+            type = EUploadMimeType.Mov;
+            break;
+          case "text":
+          case "plain":
+            type = EUploadMimeType.Srt;
+            break;
+          case "gif":
+            type = EUploadMimeType.Gif;
+            break;
+          default:
+            break;
+        }
+        const id = await v2.uploadMedia(media.data, {media_type: type});
+        media_ids.push(id);
+        if(i === 3){ // max 4 media in a post
+          break;
+        }
+      }
+      
+      switch (media_ids.length) {
+        case 1:
+          tweetConfig.media.media_ids = [structuredClone(media_ids[0])];
+          break;
+        case 2:
+          tweetConfig.media.media_ids = [structuredClone(media_ids[0]), structuredClone(media_ids[1])];
+          break;
+        case 3:
+          tweetConfig.media.media_ids = [structuredClone(media_ids[0]), structuredClone(media_ids[1]), structuredClone(media_ids[2])];
+          break;
+        case 4:
+          tweetConfig.media.media_ids = [structuredClone(media_ids[0]), structuredClone(media_ids[1]), structuredClone(media_ids[2]), structuredClone(media_ids[3])];
+          break;
+        default:
+          break;
+      }
     }
 
     // Handle reply
@@ -606,6 +661,7 @@ export async function createCreateTweetRequest(
     throw new Error(`Failed to create tweet: ${error?.message || error}`);
   }
 }
+
 
 export async function createCreateNoteTweetRequest(
   text: string,
